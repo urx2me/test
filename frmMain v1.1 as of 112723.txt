@@ -1,0 +1,126 @@
+Imports MySql.Data.MySqlClient
+Public Class frmMain
+    Dim connectionString As String = "server=localhost;user id=root;password=Charles-061803;database=shapeactive"
+    Dim connection As New MySqlConnection(connectionString)
+
+    Private _username As String
+    Private _height As Double
+    Private _weight As Double
+
+    Public Sub New(username As String, height As Double, weight As Double)
+        InitializeComponent()
+        _username = username
+        _height = height
+        _weight = weight
+    End Sub
+
+
+    Public Sub New(username As String)
+        InitializeComponent()
+        _username = username ' Initialize _username in the second constructor
+    End Sub
+
+    Private Sub frmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        lblGreeting.Text = "Hello, " & _username & "!"
+        CalculateAndDisplayBMI()
+
+        ' Load and display the latest current weight and target weight
+        LoadLatestGoals()
+    End Sub
+    Private Sub LoadLatestGoals()
+        ' Query the database to get the latest current weight and target weight for the current user
+        Dim query As String = "SELECT dcurrentWeight, dtargetWeight FROM tblgoals WHERE duserId = @userId ORDER BY dgoalid DESC LIMIT 1"
+
+        Using connection As New MySqlConnection(connectionString)
+            Using cmd As New MySqlCommand(query, connection)
+                cmd.Parameters.AddWithValue("@userId", GetUserId())
+
+                Try
+                    connection.Open()
+                    Dim reader As MySqlDataReader = cmd.ExecuteReader()
+
+                    If reader.Read() Then
+                        ' Display the latest current weight and target weight in labels
+                        lblCurrentWeight.Text = "Current Weight: " & reader("dcurrentWeight").ToString() & " kg"
+                        lblTargetWeight.Text = "Target Weight: " & reader("dtargetWeight").ToString() & " kg"
+                    Else
+                        ' No goals found, display default values or handle as needed
+                        lblCurrentWeight.Text = "Current Weight: N/A"
+                        lblTargetWeight.Text = "Target Weight: N/A"
+                    End If
+                Catch ex As Exception
+                    ' Handle the exception, e.g., show an error message
+                    MessageBox.Show("Error loading latest goals: " & ex.Message)
+                End Try
+            End Using
+        End Using
+    End Sub
+
+    Private Function GetUserId() As Integer
+        ' Retrieve the user ID from tblusers
+        Dim query As String = "SELECT duserId FROM tblusers WHERE dname = @username"
+
+        Using connection As New MySqlConnection(connectionString)
+            Using cmd As New MySqlCommand(query, connection)
+                cmd.Parameters.AddWithValue("@username", _username)
+
+                Try
+                    connection.Open()
+                    Dim userId As Object = cmd.ExecuteScalar()
+
+                    If userId IsNot Nothing Then
+                        Return Convert.ToInt32(userId)
+                    Else
+                        ' Handle the case where the user ID is not found
+                        MessageBox.Show("User ID not found.")
+                        Return -1
+                    End If
+                Catch ex As Exception
+                    ' Handle the exception, e.g., show an error message
+                    MessageBox.Show("Error retrieving user ID: " & ex.Message)
+                    Return -1
+                End Try
+            End Using
+        End Using
+    End Function
+
+    Private Sub CalculateAndDisplayBMI()
+        If _height > 0 AndAlso _weight > 0 Then
+            Dim heightInMeters As Double = _height * 0.3048
+            Dim bmi As Double = _weight / (heightInMeters * heightInMeters)
+            lblBMI.Text = "BMI: " & bmi.ToString("F2")
+        Else
+            lblBMI.Text = "BMI: N/A"
+        End If
+    End Sub
+
+    Public Sub UpdateHeightAndWeight(newHeight As Double, newWeight As Double)
+        _height = newHeight
+        _weight = newWeight
+        CalculateAndDisplayBMI()
+    End Sub
+
+
+    ' ... (rest of your code)
+    Private Sub btnGoals_Click(sender As Object, e As EventArgs) Handles btnGoals.Click
+        frmGoals.Show()
+    End Sub
+
+    Private Sub btnDiet_Click(sender As Object, e As EventArgs) Handles btnDiet.Click
+        frmDiet.Show()
+    End Sub
+
+    Private Sub btnActivities_Click(sender As Object, e As EventArgs) Handles btnActivities.Click
+        frmActivities.Show()
+    End Sub
+
+    Private Sub btnAchievements_Click(sender As Object, e As EventArgs) Handles btnAchievements.Click
+        frmAchievements.Show()
+    End Sub
+
+    Private Sub btnProfile_Click(sender As Object, e As EventArgs) Handles btnProfile.Click
+        frmProfile.Show()
+    End Sub
+
+
+End Class
